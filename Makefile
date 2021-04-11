@@ -34,4 +34,8 @@ runsjf-user: clean sjf
 >./sjf p0 10 p1 9 p2 8 p3 2 p4 4
 
 runsjf-file: clean sjf
->./sjf p0 10 p2 3 p4 5 p1 2 -f
+>./sjf p0 10 p1 9 p2 8 p3 2 p4 4 -f
+
+runsjf-name: clean sjf
+>./sjf p0 10 p1 9 p2 8 p3 2 p4 4 -n
+

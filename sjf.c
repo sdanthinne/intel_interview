@@ -78,8 +78,8 @@ int comparator(const void * a, const void * b)
 /**
  * ASSUME: arguments given follow the format detailed below.
  * ASSUME: The user knows the burst time of each program OR job 
- * weights are assigned by executable size (using option -f)
- *
+ * weights are assigned by executable size (using option -f) OR 
+ * weights are assigned by number within the program name(using option -n).
  */
 int main( int argc , char* argv[] )
 {
@@ -108,15 +108,21 @@ int main( int argc , char* argv[] )
 
 
     // Part 1: parse arguments from the user
-    if( !((argc>1) && (((argc-1)%2==0)||(!strcmp(argv[argc-1],"-f")))) )
+    if( !((argc>1) && (((argc-1)%2==0)||(!strcmp(argv[argc-1],"-f"))||(!strcmp(argv[argc-1],"-n")))) )
     {
-    	printf("%s prog1 time [prog2] [time] ... [prog[N] time[N] [-f]\n",argv[0]);
+    	printf("%s prog1 time [prog2] [time] ... [prog[N] time[N] [-f | -n]\n",argv[0]);
 	    exit(-1);
     }
 
     if(!strcmp("-f",argv[argc-1]))
     {
         force=1;
+        argc--;
+    }
+
+    if(!strcmp("-n",argv[argc-1]))
+    {
+        force=-1;
         argc--;
     }
 
@@ -134,7 +140,7 @@ int main( int argc , char* argv[] )
                 execl(argv[i],argv[i],(char*)NULL);
                 printf("no beans");
             }else{
-                if(force)
+                if(force==1)
                 {
                     //calculate the executable size (only works as intended
                     //if all loops have been unrolled, NEVER branches back up, purely sequential)
@@ -152,6 +158,9 @@ int main( int argc , char* argv[] )
                     enqueue(&q,pid,size);
                     fclose(executable);
 
+                }else if(force == -1)
+                {
+                    enqueue(&q,pid,(long)atoi(argv[i]));
                 }else
                 {
                     enqueue(&q,pid,(long)atoi(argv[i+1]));//put process into queue

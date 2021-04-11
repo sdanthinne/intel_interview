@@ -16,5 +16,8 @@ To run sjf example based on user values:
 To run sjf example based on executable size:
     make runsjf-file
 
+To run sjf example based on program number (within executable name):
+    make runsjf-name
+
 
 Sebastien Danthinne
