@@ -1,16 +1,22 @@
 .RECIPEPREFIX = >
-p.o: p.c
+ARGS=-ggdb
+p:
 >echo "making p.o..."
->cc -c p.c -o $@
+>for number in 0 1 2 3 4 ; do \
+	gcc $(ARGS) p.c -o p$$number ; \
+ done
 
-rr: p.o`
->cc -c rr.c -o rr.o
->cc rr.o p.o -o rr
+rr: p
+>gcc $(ARGS) -c rr.c -o rr.o
+>gcc rr.o -o rr
 
-fcfs: p.o
->cc -c fcfs.c -o fcfs.o
->cc fcfs.o p.o -o fcfs
+fcfs: p
+>gcc -c fcfs.c -o fcfs.o
+>gcc fcfs.o p.o -o fcfs
 
-sjf: p.o
->cc -c sjf.c -o sjf.o
->cc sfc.o p.o -o sjf
+sjf: p
+>gcc -c sjf.c -o sjf.o
+>gcc sfc.o p.o -o sjf
+
+clean:
+>rm -f p0 p1 p2 p3 p4 rr sjf fcfs
