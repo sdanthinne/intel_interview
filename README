@@ -1,0 +1,20 @@
+DEPENDS ON:
+gcc
+make
+standard libraries
+
+This is a simple exercise on process scheduling. 
+To run round robin example:
+    make runrr
+
+To run fcfs example: 
+    make runfcfs
+
+To run sjf example based on user values:
+    make runsjf-user
+
+To run sjf example based on executable size:
+    make runsjf-file
+
+
+Sebastien Danthinne
