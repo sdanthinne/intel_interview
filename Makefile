@@ -14,8 +14,8 @@ fcfs: p
 >gcc fcfs.o -o fcfs
 
 sjf: p
->gcc -c sjf.c -o sjf.o
->gcc sfc.o -o sjf
+>gcc $(ARGS) -c sjf.c -o sjf.o
+>gcc sjf.o -o sjf
 
 clean:
 >rm -f p0 p1 p2 p3 p4 rr sjf fcfs test
@@ -26,5 +26,9 @@ test: clean p
 
 runrr: clean rr
 >./rr 50 p0 p1 p2 p3 p4
+
 runfcfs: clean fcfs
 >./fcfs p0 p1 p2 p3 p4
+
+runsjf-user: clean sjf
+>./sjf p0 10 p1 9 p2 8 p3 2 p4 4
