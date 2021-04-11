@@ -29,6 +29,7 @@ int main(int argc, char const *argv[])
 		printf("This is program %s with pid %d and it prints for the %d time...\n",argv[0],getpid(),i+6 );
 		usleep(10000);
 	}
+    printf("sending kill signal");
 	kill(getppid(),SIGCHLD);
 	return 0;
 }
