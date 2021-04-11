@@ -29,6 +29,6 @@ int main(int argc, char const *argv[])
 		printf("This is program %s with pid %d and it prints for the %d time...\n",argv[0],getpid(),i+6 );
 		usleep(10000);
 	}
-	kill(getppid(),SIGCHLD);
+	//kill(getppid(),SIGCHLD);//not sure why we are sending SIGCHLD here, OS sends it normally.
 	return 0;
 }
