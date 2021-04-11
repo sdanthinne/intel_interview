@@ -25,34 +25,36 @@ typedef struct Queue
 
 volatile sig_atomic_t child_term=0;//flag for termination
 
+/**
+ * Enqueues the value pid into a Node object at index back
+ */
 void enqueue(Queue * queue, int pid) 
 {
-    
     (queue->array+queue->back)->pid=pid;//set the actual PID
-    //printf("\nEnqueueing %d at %d\n",pid,queue->back);
     queue->back=(queue->back+1)%queue->totalsize;
     queue->len++;
-    //printf("Back after enqueue: %d PID= %d len= %d\n",queue->back,queue->array[queue->front].pid,queue->len);
 }
 
-//returns NULL if queue is empty
+/**
+ * Dequeues item at index front and returns pointer to object
+ * Safe use in this use-case
+ */
 Node * dequeue(Queue * queue)
 {
     Node * ret; 
-    //printf("\ndeq\n");
-    //printf("Front before dequeue: %d len= %d PID=%d\n",queue->front,queue->len,queue->array[queue->front].pid);
+
     ret = queue->array+(queue->front);
     queue->front=(queue->front+1)%queue->totalsize;
     queue->len--;
-
-    //printf("Front after dequeue: %d len= %d PID=%d\n",queue->front,queue->len,queue->array[queue->front].pid);
-
     
     return ret;//return the actual item pointer
 }
 
-
-
+/**
+ * SIGCHLD handler
+ *  sets global done flag, and waits so no children is left
+ *  behind
+ */
 void term_child(int sig,siginfo_t * info,void * point)
 {
     struct sigaction sig_happen;
@@ -66,7 +68,9 @@ void term_child(int sig,siginfo_t * info,void * point)
     
 }
 
-
+/**
+ * Round Robin Scheduler example.
+ */
 int main( int argc , char* argv[] )
 {
     int qt;
@@ -75,26 +79,20 @@ int main( int argc , char* argv[] )
     struct sigaction sig_happen;
     sig_happen.sa_sigaction = term_child;
     sig_happen.sa_flags|=SA_SIGINFO;
-    sigaction(SIGCHLD,&sig_happen,NULL);//safe init handler, does not matter for this application.
+    sigaction(SIGCHLD,&sig_happen,NULL);//safe SIGCHLD handler
     
     q.totalsize=argc-2+1;
     q.front=0;
     q.back=0;
     q.len=0;
     child_term=0;
-    //sigset_t signals;
 
-    //sigaddset(&signals,SIGCHLD);
 
-    q.array = malloc(sizeof(Node)*(q.totalsize));//allocate our queue
-
-    if(q.array==NULL)
+    if((q.array = malloc(sizeof(Node)*(q.totalsize)))==NULL)//check malloc for error
     {
         printf("Error with memory allocation\n");
         exit(-1);
     }
-
-
 
     // Part 1: parse arguments from the user
     if(argc>2)
@@ -109,8 +107,6 @@ int main( int argc , char* argv[] )
 
     // PART 2 : Forking the processes
 
-    //signal(SIGCHLD,term_child);//initialize handler for child complete
-
     for (int i=2;i<argc;i++)
     {
         int pid=0;
@@ -120,35 +116,33 @@ int main( int argc , char* argv[] )
         {
             if(pid==0)
             {
+                //child: exec the child function specified
                 execl(argv[i],argv[i],(char*)NULL);
-                printf("no beans");
+                fprintf(stderr,"no beans");//if there is an error execing
             }else{
                 enqueue(&q,pid);//put process into queue
-                //usleep(10);//wait for the process to get to pause()
             }
         }
     }
 
-    //printf("we have: %d progs",q.len);
     sleep(1); // short delay for synchronization
 
     printf ("\n I am the Scheduler and I will now begin scheduling my programs : \n" );
     // PART 3 : Scheduling loop
     while (q.len!=0) // Scheduling loop
     {
-
-        //printf("sending CONT to process %d\n",(q.array+q.front)->pid);
         kill((q.array+q.front)->pid,SIGCONT);//begin the first process in the queue
         
-    	usleep(qt);
-	    //if (sigpending(signals,SIGCHLD))
+    	usleep(qt);//wait the specified process time
+        
         printf("Child %d was running end=%d\n",(q.array+q.front)->pid,child_term);
         if(!child_term)
     	{
+            //if the process is not yet done
             Node temp;
-
+            //save off the Node somewhere else to prevent overwriting.
             memcpy(&temp,dequeue(&q),sizeof(Node));
-		    kill(temp.pid,SIGUSR1);
+		    kill(temp.pid,SIGUSR1);//send the stop signal to the child
 		    usleep (1000);
             enqueue(&q,temp.pid);
 	    }
@@ -157,7 +151,8 @@ int main( int argc , char* argv[] )
 		    printf ("A child is dead\n");
             dequeue(&q);
 	    }
-        child_term=0;
+        child_term=0;//reset flag
     }
     printf("Queue empty\nAll of my children died so bye...\n");
+    free(q.array);//cleanup, should have waited for all children already
 }
