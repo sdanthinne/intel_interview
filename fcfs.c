@@ -134,7 +134,6 @@ int main( int argc , char* argv[] )
         {
             //run the next process
             Node * next = dequeue(&q);
-            printf("running next");
             kill(next->pid,SIGCONT);
             ready = 0;
         }
