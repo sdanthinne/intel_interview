@@ -26,4 +26,4 @@ test: clean p
 >./test
 
 run: rr
->./rr 10 p0 p1
+>./rr 50 p0 p1 p2 p3 p4

@@ -4,8 +4,10 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <string.h>
 
 
+void term_child(int,siginfo_t *,void *);
 
 typedef struct Node 
 {
@@ -21,16 +23,16 @@ typedef struct Queue
 }Queue;
 
 
-volatile char child_term=0;//flag for termination
+volatile sig_atomic_t child_term=0;//flag for termination
 
 void enqueue(Queue * queue, int pid) 
 {
     
     (queue->array+queue->back)->pid=pid;//set the actual PID
-    //printf("Enqueueing %d at %d\n",pid,queue->back);
+    //printf("\nEnqueueing %d at %d\n",pid,queue->back);
     queue->back=(queue->back+1)%queue->totalsize;
     queue->len++;
-    //printf("Back after enqueue: %d len= %d\n",queue->back,queue->len);
+    //printf("Back after enqueue: %d PID= %d len= %d\n",queue->back,queue->array[queue->front].pid,queue->len);
 }
 
 //returns NULL if queue is empty
@@ -49,21 +51,33 @@ Node * dequeue(Queue * queue)
     return ret;//return the actual item pointer
 }
 
-void term_child(int sig)
-{
-    child_term=1;//say that the child finished
 
-    //wait(NULL);
+
+void term_child(int sig,siginfo_t * info,void * point)
+{
+    struct sigaction sig_happen;
+    sig_happen.sa_sigaction = term_child;
+    sig_happen.sa_flags|=SA_SIGINFO;
+
+    printf("Child %d finished its workload\n",info->si_pid);
+    sigaction(SIGCHLD,&sig_happen,NULL);//safe init handler
+    child_term=1;//say that the child finished
+    waitpid(info->si_pid,NULL,0);
+    
 }
+
 
 int main( int argc , char* argv[] )
 {
     int qt;
-    //struct sigaction sig_happen;
-    //sig_happen.sa_handler = term_child;
     Queue q;
+
+    struct sigaction sig_happen;
+    sig_happen.sa_sigaction = term_child;
+    sig_happen.sa_flags|=SA_SIGINFO;
+    sigaction(SIGCHLD,&sig_happen,NULL);//safe init handler, does not matter for this application.
     
-    q.totalsize=argc-2;
+    q.totalsize=argc-2+1;
     q.front=0;
     q.back=0;
     q.len=0;
@@ -76,11 +90,10 @@ int main( int argc , char* argv[] )
 
     if(q.array==NULL)
     {
-        printf("Error with memory allocation");
+        printf("Error with memory allocation\n");
         exit(-1);
     }
 
-    //sigaction(SIGCHLD,&sig_happen,NULL);//safe init handler, does not matter for this application.
 
 
     // Part 1: parse arguments from the user
@@ -96,7 +109,7 @@ int main( int argc , char* argv[] )
 
     // PART 2 : Forking the processes
 
-    signal(SIGCHLD,term_child);//initialize handler for child complete
+    //signal(SIGCHLD,term_child);//initialize handler for child complete
 
     for (int i=2;i<argc;i++)
     {
@@ -111,8 +124,7 @@ int main( int argc , char* argv[] )
                 printf("no beans");
             }else{
                 enqueue(&q,pid);//put process into queue
-                usleep(10);
-                //kill(pid,SIGUSR1);//stop the process from running...
+                //usleep(10);//wait for the process to get to pause()
             }
         }
     }
@@ -130,14 +142,15 @@ int main( int argc , char* argv[] )
         
     	usleep(qt);
 	    //if (sigpending(signals,SIGCHLD))
+        printf("Child %d was running end=%d\n",(q.array+q.front)->pid,child_term);
         if(!child_term)
     	{
-            Node * temp;
+            Node temp;
 
-            temp = dequeue(&q);
-		    kill(temp->pid,SIGUSR1);
+            memcpy(&temp,dequeue(&q),sizeof(Node));
+		    kill(temp.pid,SIGUSR1);
 		    usleep (1000);
-            enqueue(&q,temp->pid);
+            enqueue(&q,temp.pid);
 	    }
 	    else
 	    {
@@ -146,4 +159,5 @@ int main( int argc , char* argv[] )
 	    }
         child_term=0;
     }
+    printf("Queue empty\nAll of my children died so bye...\n");
 }
